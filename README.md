@@ -7,7 +7,7 @@
 只依赖 Node.js，无需 `npm install`。
 
 > 本仓库只包含**播放侧**（缓冲代理 + 播放管理页）。
-> 代理控制台（mihomo / 订阅 / 节点 / 测速 / 规则 / 流量）是另一个独立项目：[mihomo-proxy-console](https://github.com/git-starsh/mihomo-proxy-console)。两者可以各自单独运行。
+> 代理控制台（mihomo / 订阅 / 节点 / 测速 / 规则 / 流量）是另一个独立项目：mihomo 代理控制台。两者可以各自单独运行。
 
 ---
 
@@ -140,7 +140,7 @@
 
 ## 与 mihomo 代理控制台配合（可选）
 
-播放服务本身不依赖控制台。如果同时使用 [mihomo-proxy-console](https://github.com/git-starsh/mihomo-proxy-console)，并且把两个项目放在**同一个目录**运行，控制台会把当前出口节点、端口等信息写入 `proxy-runtime.json`，播放服务的日志和管理页就能显示「当前走哪个节点」。
+播放服务本身不依赖控制台。如果同时使用 mihomo 代理控制台，并且把两个项目放在**同一个目录**运行，控制台会把当前出口节点、端口等信息写入 `proxy-runtime.json`，播放服务的日志和管理页就能显示「当前走哪个节点」。
 
 也可以只保留本仓库，在 `config.json` 里手动填写 `proxy` / `proxyEnabled` / `proxyHosts`，效果相同。
 
