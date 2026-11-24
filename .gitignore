@@ -1,0 +1,10 @@
+# 运行时生成的数据，不要提交
+proxy-runtime.json
+proxy-demo.json
+cache/
+check-result.json
+*.log
+*.tmp
+node_modules/
+.DS_Store
+Thumbs.db
