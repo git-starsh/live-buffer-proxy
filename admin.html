@@ -394,11 +394,6 @@
         <div class="sub" id="poolSub">抗抖动余量</div>
       </div>
       <div class="card">
-        <div class="k">代理控制台</div>
-        <div class="v" style="font-size:16px"><a id="proxyConsoleLink" href="#" target="_blank">打开控制台</a></div>
-        <div class="sub" id="proxyConsoleSub">节点、订阅、流量与局域网共享</div>
-      </div>
-      <div class="card">
         <div class="k">频道</div>
         <div class="v" id="chCount">—</div>
         <div class="sub" id="chActive"></div>
@@ -525,14 +520,13 @@
       body: [
         {
           h: '这页是干什么的',
-          html: '<p>播放服务的<b>总览面板</b>：一眼看到播放地址、频道、缓存和磁盘状态，并集中放置常用操作。页面每 <b>5 秒</b>自动刷新一次，不需要手动刷新。代理、节点、订阅与流量统计已经拆分到独立的<b>代理控制台</b>，点概览里的「代理控制台」卡片即可打开。</p>'
+          html: '<p>播放服务的<b>总览面板</b>：一眼看到播放地址、频道、缓存和磁盘状态，并集中放置常用操作。页面每 <b>5 秒</b>自动刷新一次，不需要手动刷新。</p>'
         },
         {
           h: '状态卡片逐项说明',
           html: '<dl class="help-kv">' +
             '<dt>播放入口</dt><dd>把 <code>http://盒子IP:8317/list.m3u</code> 填进电视、手机或播放器的「直播源」里。点这个地址可以直接下载清单查看。单个频道也能单独播：<code>/s/频道ID/index.m3u8</code>。</dd>' +
             '<dt>缓冲池</dt><dd>抗抖动的核心。显示当前池子有多少秒：盒子会把最新这 N 秒的切片<b>只留在本地、先不下发</b>，播放器因此始终落后直播约 N 秒。上游抖动或短暂断流时，播放器还在吃已经下发的那段，池子同时继续补齐，画面就不会卡。<b>池子越大越稳、延迟越高</b>；显示「未开启」表示贴着直播边缘，最省延迟但上游一抖就卡；关闭「切片本地缓冲」后显示「已停用」（切片直连上游，不再缓存）。修改点「去配置里修改」。</dd>' +
-            '<dt>代理控制台</dt><dd>代理开关、节点、订阅、mihomo、流量统计和局域网共享都在独立的代理控制台里（默认端口 <code>8318</code>）。点这张卡片会打开控制台页面。</dd>' +
             '<dt>频道</dt><dd>源清单里的频道总数；下面一行是<b>此刻正在播放</b>的频道数、后台正在拉流（缓冲池/本地缓存）的频道数，以及已解析出的可用上游地址条数。切片直连模式下也能看到「正在播放」。</dd>' +
             '<dt>缓存目录</dt><dd>切片实际存放路径和容量上限。达到上限后会自动删除最旧的切片，不会把磁盘撑爆。</dd>' +
             '<dt>磁盘</dt><dd>缓存目录所在分区的占用。正常为绿色，<b>≥75% 变黄</b>、<b>≥90% 变红</b>。变红时建议清空切片缓存或调大磁盘。</dd>' +
@@ -561,9 +555,8 @@
           h: '常见场景怎么做',
           html: '<ul class="help-list">' +
             '<li><b>新设备要接进来</b>：复制「播放入口」地址，填到播放器的直播源里即可，无需额外设置。</li>' +
-            '<li><b>画面卡顿</b>：代理相关问题去「代理控制台 → 节点」测速或换节点；再看磁盘是否变黄/变红，必要时清空缓存。</li>' +
+            '<li><b>画面卡顿</b>：先看磁盘是否变黄/变红，必要时清空缓存；再看缓冲池是否太小。</li>' +
             '<li><b>频道缺失或过期</b>：点紫色「刷新源清单」；仍然没有就检查「配置 → 服务 → 源清单地址」。</li>' +
-            '<li><b>换了机场订阅</b>：打开代理控制台，在「订阅」页改地址（一行一个，可填多个）并保存，再点「立即更新订阅」。</li>' +
             '</ul>'
         },
         { h: '小提示', html: '<div class="help-tip ok">手机/平板上顶栏会收成 <b>☰ 菜单</b>，点一下展开标签页；再点一下收起。右上角的 🌙 / ☀️ 可以切换日间和夜间模式，选择会记住。</div>' }
@@ -660,7 +653,7 @@
           h: '常见排查',
           html: '<ol class="help-steps">' +
             '<li><b>确认播放器有没有真的连上</b>：看该频道状态是否变成「播放中」、已播切片是否在涨。</li>' +
-            '<li><b>画面卡住</b>：看「剩余未播」是否接近 0；持续为 0 说明上游供片慢，可去代理控制台换节点或调大缓冲深度。</li>' +
+            '<li><b>画面卡住</b>：看「剩余未播」是否接近 0；持续为 0 说明上游供片慢，可调大缓冲深度。</li>' +
             '<li><b>频道列表不对</b>：回概览页点「刷新源清单」，或检查「配置 → 服务 → 源清单地址」。</li>' +
             '<li><b>找不到频道 ID</b>：在本页搜索频道名，第一列就是 ID，可直接拼成播放地址。</li>' +
             '</ol>'
@@ -687,7 +680,7 @@
         {
           h: '线路与状态符号',
           html: '<ul class="help-list">' +
-            '<li><code>🌐 走代理</code>：这次请求经订阅节点转发，后面会注明 AUTO 还是固定节点。</li>' +
+            '<li><code>🌐 走代理</code>：这次请求经外部代理转发，后面会注明 AUTO 还是固定节点。</li>' +
             '<li><code>🔌 直连</code>：这次请求没走代理，可能是域名不在代理列表，或代理总开关已关闭。</li>' +
             '<li><code>🔄 代理出口切换</code>：AUTO 选中的节点变了，会显示新旧节点和延迟。</li>' +
             '<li><code>📡 拉取清单</code>：请求频道清单；<code>↗ 200</code> 是上游响应状态与耗时。</li>' +
@@ -828,7 +821,7 @@
     return d.toLocaleString('zh-CN', { hour12: false });
   }
 
-  // 月/日 时:分，给流量统计起点这种“很久以前”的时间用，卡片里不会换行难看
+  // 月/日 时:分，给很早以前的统计起点用，卡片里不会换行难看
   function fmtShortTime(ts) {
     if (!ts) return '—';
     var d = new Date(ts);
@@ -1107,19 +1100,6 @@
     }
   }
 
-  // 代理控制台入口：代理、节点、订阅、流量、共享都在独立端口上
-  function setProxyConsoleLink(port) {
-    var link = $('#proxyConsoleLink');
-    if (!link) return;
-    var p = Number(port) || 8318;
-    var host = location.hostname || '127.0.0.1';
-    var url = 'http://' + host + ':' + p + '/admin';
-    link.href = url;
-    link.textContent = host + ':' + p;
-    var sub = $('#proxyConsoleSub');
-    if (sub) sub.textContent = '节点、订阅、流量与局域网共享（独立进程）';
-  }
-
   // ---------- 概览 / 频道 ----------
   async function loadStatus() {
     try {
@@ -1136,7 +1116,6 @@
       renderDisk(data.disk);
       setServiceState(data.service);
       setPoolState(data.config.bufferPoolSeconds, data.config.segmentsEnabled);
-      setProxyConsoleLink(data.proxyConsolePort);
       renderChannels(chs);
       renderPlaying(chs);
       setPill(true);

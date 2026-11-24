@@ -92,11 +92,9 @@ const DEFAULT_CONFIG = {
   // 上游代理（可选）。例如 "http://127.0.0.1:7890" 或 "socks5://127.0.0.1:1080"
   // 只让部分域名走代理时配合 proxyHosts 使用
   proxy: '',
-  // 总开关：关掉后所有上游请求一律直连（订阅更新和测速不受影响）
+  // 总开关：关掉后所有上游请求一律直连
   proxyEnabled: true,
   proxyHosts: [],
-  // 把 mihomo 的 7890 端口共享给局域网：开启后监听 0.0.0.0，同网段设备可当 HTTP/SOCKS5 代理用
-  proxyAllowLan: false,
 
   // 缓存目录与容量上限（MB），超过后自动清理最旧的切片
   cacheDir: 'cache',
@@ -111,29 +109,6 @@ const DEFAULT_CONFIG = {
   demoProbeMinutes: 0,
   // Node 解析上游响应失败时，自动改用系统 curl 重新请求（对畸形响应更宽容）
   curlFallback: true,
-
-  // ---- 代理节点（Clash / mihomo）----
-  // 订阅地址：可以填多个，节点会合并去重后一起测速；定时拉取
-  subscriptionUrls: [],
-  // 旧版单订阅字段，仅用于迁移旧配置（新配置请用 subscriptionUrls）
-  subscriptionUrl:
-    '',
-  // 每隔几小时拉一次订阅。0 = 不自动更新（仍可在页面上手动更新）
-  subscriptionUpdateHours: 12,
-  // 节点自动测速间隔（秒），mihomo 会按这个间隔选最快的节点
-  nodeTestIntervalSeconds: 600,
-  // 测速目标地址（返回 204 的小文件，越小越准）
-  nodeTestUrl: 'https://www.google.com/generate_204',
-  // 节点延迟差在这个范围内视为一样快，不来回切换（毫秒）
-  nodeTestToleranceMs: 80,
-  // 固定使用某个节点；留空 = 自动选择（AUTO）
-  proxySelectedNode: '',
-  // mihomo 本地接口与配置文件、服务名
-  mihomoApi: 'http://127.0.0.1:9090',
-  mihomoSecret: '',
-  mihomoConfigPath: '/etc/mihomo/config.yaml',
-  mihomoService: 'mihomo',
-  mihomoBinary: '/usr/local/bin/mihomo',
 
   // 管理页面密码（空 = 局域网内免密进入 /admin）
   adminPassword: '',
@@ -151,14 +126,6 @@ function loadConfig() {
     console.error('[config] config.json 解析失败，使用默认配置:', e.message);
   }
   const cfg = Object.assign({}, DEFAULT_CONFIG, user);
-  // 旧版单订阅字段迁移成多订阅数组
-  const urls = Array.isArray(cfg.subscriptionUrls)
-    ? cfg.subscriptionUrls.map((u) => String(u || '').trim()).filter(Boolean)
-    : [];
-  if (!urls.length && String(cfg.subscriptionUrl || '').trim()) {
-    urls.push(String(cfg.subscriptionUrl).trim());
-  }
-  cfg.subscriptionUrls = [...new Set(urls)];
   if (!path.isAbsolute(cfg.cacheDir)) cfg.cacheDir = path.join(ROOT, cfg.cacheDir);
   if (!/^https?:/i.test(cfg.source) && !path.isAbsolute(cfg.source)) {
     cfg.source = path.join(ROOT, cfg.source);
@@ -295,14 +262,14 @@ const CONFIG_SCHEMA = [
   },
   {
     group: '代理域名',
-    desc: '决定播放服务哪些上游请求走本地代理（订阅更新和节点测速不受影响）。留空 = 跟随代理控制台里的设置。',
+    desc: '决定播放服务哪些上游请求走本地代理。留空 = 使用 proxy-runtime.json / config.json 里的默认设置。',
     fields: [
       {
         key: 'proxyHosts',
         label: '走代理的域名',
         type: 'urls',
         rows: 4,
-        desc: '每行一个域名，子域名自动包含（例如 live.example.com 也会匹配 a.live.example.com）。填了之后播放服务只让这些域名走代理，不再使用默认的 live.ottiptv.cc；留空则沿用代理控制台的设置。'
+        desc: '每行一个域名，子域名自动包含（例如 live.example.com 也会匹配 a.live.example.com）。填了之后播放服务只让这些域名走代理；留空则沿用默认设置。'
       }
     ]
   },
@@ -560,10 +527,9 @@ function contentTypeFor(name) {
 // 上游代理（HTTP CONNECT / SOCKS5）
 // ---------------------------------------------------------------------------
 
-// 代理控制台通过 proxy-runtime.json 把「开关 / 地址 / 域名 / 节点」推给本进程。
-// 读文件而不是调 HTTP：控制台没启动时播放照样能用（退回 config.json 里的旧设置）。
+// proxy-runtime.json 可提供「开关 / 地址 / 域名 / 节点」等上游代理参数（外部程序可选写入）。
+// 读文件而不是调 HTTP：文件不存在时播放照样能用（退回 config.json 里的设置）。
 const PROXY_RUNTIME_FILE = path.join(ROOT, 'proxy-runtime.json');
-const PROXY_CONSOLE_URL = process.env.PROXY_CONSOLE_URL || 'http://127.0.0.1:8318';
 let proxyRuntimeCache = { at: 0, mtimeMs: -1, data: null };
 
 function loadProxyRuntime(force = false) {
@@ -588,7 +554,6 @@ function loadProxyRuntime(force = false) {
           hostTargets: raw.hostTargets && typeof raw.hostTargets === 'object' && !Array.isArray(raw.hostTargets)
             ? raw.hostTargets
             : {},
-          consolePort: Number(raw.consolePort) || 8318,
           updatedAt: Number(raw.updatedAt) || 0
         };
       }
@@ -604,16 +569,15 @@ function loadProxyRuntime(force = false) {
       enabled: config.proxyEnabled !== false,
       url: String(config.proxy || ''),
       hosts: Array.isArray(config.proxyHosts) ? config.proxyHosts : [],
-      selected: String(config.proxySelectedNode || 'AUTO'),
-      selectedGroup: String(config.proxySelectedGroup || ''),
-      selectedNode: String(config.proxySelectedNode || ''),
+      selected: 'AUTO',
+      selectedGroup: '',
+      selectedNode: '',
       selectedGroupExit: '',
       hostTargets: {},
-      consolePort: 8318,
       updatedAt: 0
     };
   }
-  // 控制台未安装 / 还没生成 proxy-runtime.json 时也要缓存兜底值，
+  // proxy-runtime.json 不存在时也要缓存兜底值，
   // 否则 800ms 内的下一次读取会拿到 null，直接报 “reading 'enabled'”。
   proxyRuntimeCache.data = data;
   return data;
@@ -621,16 +585,15 @@ function loadProxyRuntime(force = false) {
 
 /**
  * 本播放服务自己配置的走代理域名（config.json 的 proxyHosts）。
- * 非空时优先于代理控制台推下来的 hosts：这样控制台规则里改了域名，
- * 播放服务也能单独指定，不再被控制台里的旧域名（如 live.ottiptv.cc）带着走。
- * 留空 = 跟随代理控制台。
+ * 非空时优先于 proxy-runtime.json 里的 hosts：这样播放服务能单独指定走代理的域名。
+ * 留空 = 跟随 proxy-runtime.json。
  */
 function playbackProxyHosts() {
   const raw = Array.isArray(config.proxyHosts) ? config.proxyHosts : [];
   return raw.map((h) => String(h || '').trim().toLowerCase()).filter(Boolean);
 }
 
-/** 实际生效的走代理域名：本服务配置优先，其次代理控制台 */
+/** 实际生效的走代理域名：本服务配置优先，其次 proxy-runtime.json */
 function effectiveProxyHosts(rt) {
   const own = playbackProxyHosts();
   if (own.length) return own;
@@ -715,7 +678,7 @@ function proxyRouteTarget(rt, host) {
     return !!rule && (key === rule || key.endsWith('.' + rule));
   });
   if (hostRule) {
-    // 规则目标由控制台 YAML 决定：可能是 AUTO、某个策略组或固定节点
+    // 规则目标由 proxy-runtime.json 的映射决定：可能是 AUTO、某个分组或固定节点
     const map = rt.hostTargets && typeof rt.hostTargets === 'object' ? rt.hostTargets : {};
     let hit = map[host] || map[key] || null;
     if (!hit) {
@@ -740,7 +703,7 @@ function proxyRouteTarget(rt, host) {
   }
   if (rt.selectedGroup) {
     const node = shortExitNode(rt.selectedGroupExit);
-    return '策略组 ' + rt.selectedGroup + (node ? '（' + node + '）' : '');
+    return '分组 ' + rt.selectedGroup + (node ? '（' + node + '）' : '');
   }
   if (rt.selectedNode && rt.selectedNode !== 'AUTO') return '固定节点 ' + rt.selectedNode;
   if (rt.selected && rt.selected !== 'AUTO') return '固定节点 ' + rt.selected;
@@ -767,7 +730,7 @@ function logProxyRoute(urlStr, mode) {
 
 /**
  * 日志后缀：这次连接是直连还是走代理，走代理时带上规则命中的节点。
- * 返回空串或形如 “ · 直连”“ · 走代理：规则组 订阅 xx（🇹🇼台湾Hinet）”。
+ * 返回空串或形如 “ · 直连”“ · 走代理：规则组 AUTO（🇭🇰 香港 01）”。
  */
 function routeLogTag(urlStr) {
   const u = String(urlStr || '').trim();
@@ -3010,7 +2973,6 @@ async function handle(req, res) {
         return sendJson(res, {
           channels: list,
           service: serviceInfo(),
-          proxyConsolePort: loadProxyRuntime().consolePort || 8318,
           disk: Object.assign(await diskInfo(), {
             cacheBytes: await cacheUsageBytes(),
             maxCacheMB: Number(config.maxCacheMB) || 0
@@ -3150,7 +3112,7 @@ async function main() {
       }
     } catch (_) {}
   }
-  // 代理控制台通过 proxy-runtime.json 提供上游代理参数；这里只预热一次，播放不依赖控制台在线
+  // proxy-runtime.json 可提供上游代理参数；这里只预热一次，播放不依赖该文件
   loadProxyRuntime(true);
   loadDemoState();
   await loadSource(true);

@@ -20,7 +20,6 @@ ExecStart=$NODE $DIR/proxy.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
-Environment=PROXY_CONSOLE_URL=http://127.0.0.1:8318
 StandardOutput=journal
 StandardError=journal
 

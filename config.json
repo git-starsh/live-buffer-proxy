@@ -31,16 +31,5 @@
   "proxyEnabled": false,
   "proxyHosts": [],
   "proxyDirectFallback": true,
-  "subscriptionUrl": "",
-  "subscriptionUpdateHours": 12,
-  "nodeTestIntervalSeconds": 600,
-  "nodeTestUrl": "https://www.google.com/generate_204",
-  "nodeTestToleranceMs": 80,
-  "proxySelectedNode": "",
-  "mihomoApi": "http://127.0.0.1:9090",
-  "mihomoSecret": "",
-  "mihomoConfigPath": "/etc/mihomo/config.yaml",
-  "mihomoService": "mihomo",
-  "mihomoBinary": "/usr/local/bin/mihomo",
   "adminPassword": ""
 }
